@@ -46,18 +46,18 @@ namespace terrier::execution {
          * Run TPL from a file and record the time, mostly copied from tpl.cpp
          */
         void RunFile(const std::string &filename,
-                double *interp_exec_ms_sum,
-                uint64_t *interp_exec_ms_cnt,
-                double *adaptive_exec_ms_sum,
-                uint64_t *adaptive_exec_ms_cnt,
-                double *jit_exec_ms_sum,
-                uint64_t *jit_exec_ms_cnt,
-                bool interp, bool adaptive, bool jit);
+                     double *interp_exec_ms_sum,
+                     uint64_t *interp_exec_ms_cnt,
+                     double *adaptive_exec_ms_sum,
+                     uint64_t *adaptive_exec_ms_cnt,
+                     double *jit_exec_ms_sum,
+                     uint64_t *jit_exec_ms_cnt,
+                     bool interp, bool adaptive, bool jit);
 
         /*
          * Signal handler
          */
-        static void TplClassSignalHandler(i32 sig_num) {
+        static void TplClassSignalHandler(int32_t sig_num) {
             if (sig_num == SIGINT) {
                 ShutdownTplClass();
                 exit(0);
