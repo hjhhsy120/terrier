@@ -1,6 +1,6 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::ast {
 
@@ -23,12 +23,6 @@ namespace terrier::execution::ast {
   F(FilterLe, filterLe)                                         \
   F(FilterLt, filterLt)                                         \
   F(FilterNe, filterNe)                                         \
-  F(FilterEqBind, filterEqBind)                                 \
-  F(FilterGeBind, filterGeBind)                                 \
-  F(FilterGtBind, filterGtBind)                                 \
-  F(FilterLeBind, filterLeBind)                                 \
-  F(FilterLtBind, filterLtBind)                                 \
-  F(FilterNeBind, filterNeBind)                                 \
                                                                 \
   /* Thread State Container */                                  \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)               \
@@ -38,15 +32,12 @@ namespace terrier::execution::ast {
   F(ThreadStateContainerFree, tlsFree)                          \
                                                                 \
   /* Table scans */                                             \
-  F(TableIterConstruct, tableIterConstruct)                     \
-  F(TableIterConstructBind, tableIterConstructBind)             \
-  F(TableIterPerformInit, tableIterPerformInit)                 \
-  F(TableIterPerformInitBind, tableIterPerformInitBind)         \
-  F(TableIterAddCol, tableIterAddCol)                           \
-  F(TableIterAddColBind, tableIterAddColBind)                   \
+  F(TableIterInit, tableIterInit)                               \
+  F(TableIterInitBind, tableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
+  F(TableIterReset, tableIterReset)                             \
   F(TableIterParallel, iterateTableParallel)                    \
                                                                 \
   /* PCI */                                                     \
@@ -74,7 +65,6 @@ namespace terrier::execution::ast {
   F(PCIGetDoubleNull, pciGetDoubleNull)                         \
   F(PCIGetDateNull, pciGetDateNull)                             \
   F(PCIGetVarlenNull, pciGetVarlenNull)                         \
-  F(PCIGetBind, pciGetBind)                                     \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \
@@ -149,48 +139,56 @@ namespace terrier::execution::ast {
                                                                 \
   /* Output Buffer */                                           \
   F(OutputAlloc, outputAlloc)                                   \
-  F(OutputAdvance, outputAdvance)                               \
-  F(OutputSetNull, outputSetNull)                               \
   F(OutputFinalize, outputFinalize)                             \
                                                                 \
   /* Index */                                                   \
-  F(IndexIteratorConstruct, indexIteratorConstruct)             \
-  F(IndexIteratorConstructBind, indexIteratorConstructBind)     \
-  F(IndexIteratorPerformInit, indexIteratorPerformInit)         \
-  F(IndexIteratorPerformInitBind, indexIteratorPerformInitBind) \
-  F(IndexIteratorAddCol, indexIteratorAddCol)                   \
-  F(IndexIteratorAddColBind, indexIteratorAddColBind)           \
+  F(IndexIteratorInit, indexIteratorInit)                       \
+  F(IndexIteratorInitBind, indexIteratorInitBind)               \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
-  F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)           \
-  F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)         \
-  F(IndexIteratorGetInt, indexIteratorGetInt)                   \
-  F(IndexIteratorGetBigInt, indexIteratorGetBigInt)             \
-  F(IndexIteratorGetReal, indexIteratorGetReal)                 \
-  F(IndexIteratorGetDouble, indexIteratorGetDouble)             \
-  F(IndexIteratorGetTinyIntNull, indexIteratorGetTinyIntNull)   \
-  F(IndexIteratorGetSmallIntNull, indexIteratorGetSmallIntNull) \
-  F(IndexIteratorGetIntNull, indexIteratorGetIntNull)           \
-  F(IndexIteratorGetBigIntNull, indexIteratorGetBigIntNull)     \
-  F(IndexIteratorGetRealNull, indexIteratorGetRealNull)         \
-  F(IndexIteratorGetDoubleNull, indexIteratorGetDoubleNull)     \
-  F(IndexIteratorGetBind, indexIteratorGetBind)                 \
-  F(IndexIteratorSetKeyTinyInt, indexIteratorSetKeyTinyInt)     \
-  F(IndexIteratorSetKeySmallInt, indexIteratorSetKeySmallInt)   \
-  F(IndexIteratorSetKeyInt, indexIteratorSetKeyInt)             \
-  F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
-  F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
-  F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
-  F(IndexIteratorSetKeyBind, indexIteratorSetKeyBind)           \
+  F(IndexIteratorGetPR, indexIteratorGetPR)                     \
+  F(IndexIteratorGetSlot, indexIteratorGetSlot)                 \
+  F(IndexIteratorGetTablePR, indexIteratorGetTablePR)           \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
-  /* Insert */                                                  \
-  F(Insert, insert)
+  /* Projected Row Operations */                                \
+  F(PRSetTinyInt, prSetTinyInt)                                 \
+  F(PRSetSmallInt, prSetSmallInt)                               \
+  F(PRSetInt, prSetInt)                                         \
+  F(PRSetBigInt, prSetBigInt)                                   \
+  F(PRSetReal, prSetReal)                                       \
+  F(PRSetDouble, prSetDouble)                                   \
+  F(PRSetDate, prSetDate)                                       \
+  F(PRSetVarlen, prSetVarlen)                                   \
+  F(PRSetTinyIntNull, prSetTinyIntNull)                         \
+  F(PRSetSmallIntNull, prSetSmallIntNull)                       \
+  F(PRSetIntNull, prSetIntNull)                                 \
+  F(PRSetBigIntNull, prSetBigIntNull)                           \
+  F(PRSetRealNull, prSetRealNull)                               \
+  F(PRSetDoubleNull, prSetDoubleNull)                           \
+  F(PRSetDateNull, prSetDateNull)                               \
+  F(PRSetVarlenNull, prSetVarlenNull)                           \
+  F(PRGetTinyInt, prGetTinyInt)                                 \
+  F(PRGetSmallInt, prGetSmallInt)                               \
+  F(PRGetInt, prGetInt)                                         \
+  F(PRGetBigInt, prGetBigInt)                                   \
+  F(PRGetReal, prGetReal)                                       \
+  F(PRGetDouble, prGetDouble)                                   \
+  F(PRGetDate, prGetDate)                                       \
+  F(PRGetVarlen, prGetVarlen)                                   \
+  F(PRGetTinyIntNull, prGetTinyIntNull)                         \
+  F(PRGetSmallIntNull, prGetSmallIntNull)                       \
+  F(PRGetIntNull, prGetIntNull)                                 \
+  F(PRGetBigIntNull, prGetBigIntNull)                           \
+  F(PRGetRealNull, prGetRealNull)                               \
+  F(PRGetDoubleNull, prGetDoubleNull)                           \
+  F(PRGetDateNull, prGetDateNull)                               \
+  F(PRGetVarlenNull, prGetVarlenNull)
 
 /**
  * Enum of builtins
  */
-enum class Builtin : u8 {
+enum class Builtin : uint8_t {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
 #undef ENTRY
@@ -207,22 +205,22 @@ class Builtins {
   /**
    * The total number of builtin functions
    */
-  static const u32 kBuiltinsCount = static_cast<u32>(Builtin ::Last) + 1;
+  static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin ::Last) + 1;
 
   /**
    * @return the total number of bytecodes
    */
-  static constexpr u32 NumBuiltins() { return kBuiltinsCount; }
+  static constexpr uint32_t NumBuiltins() { return BUILTINS_COUNT; }
 
   /**
    * Return the name of the builtin
    * @param builtin builtin to retrieve
    * @return name of the builtin function
    */
-  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<u8>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) { return builtin_functions_name[static_cast<uint8_t>(builtin)]; }
 
  private:
-  static const char *kBuiltinFunctionNames[];
+  static const char *builtin_functions_name[];
 };
 
 }  // namespace terrier::execution::ast

@@ -24,8 +24,11 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::SetUp();
 
     // Initialize the transaction manager and GC
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
 
     // Build out the catalog and commit so that it is visible to other transactions
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
@@ -50,6 +53,8 @@ struct CatalogTests : public TerrierTest {
     delete catalog_;  // need to delete catalog_first
     delete gc_;
     delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
 
     TerrierTest::TearDown();
   }
@@ -82,7 +87,8 @@ struct CatalogTests : public TerrierTest {
   catalog::Catalog *catalog_;
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   storage::BlockStore block_store_{100, 100};
-
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
 
   storage::GarbageCollector *gc_;
@@ -207,11 +213,10 @@ TEST_F(CatalogTests, UserTableTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
-  table_oid = accessor->GetTableOid("test_table");
-  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   EXPECT_TRUE(accessor->DropTable(table_oid));
-  table_oid = accessor->GetTableOid("test_table");
-  EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
+  VerifyTableAbsent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 

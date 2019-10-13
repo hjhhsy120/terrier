@@ -283,7 +283,6 @@ class DatabaseCatalog {
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
-  storage::index::Index *columns_class_index_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
@@ -298,7 +297,6 @@ class DatabaseCatalog {
   storage::index::Index *constraints_index_index_;
   storage::index::Index *constraints_foreigntable_index_;
 
-  transaction::Action debootstrap;
   std::atomic<uint32_t> next_oid_;
 
   const db_oid_t db_oid_;
