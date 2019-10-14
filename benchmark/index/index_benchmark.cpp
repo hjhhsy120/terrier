@@ -1,5 +1,5 @@
 // Whether pin to core, only for GC now. TODO : discuss it later
-//#define MY_PIN_TO_CORE
+#define MY_PIN_TO_CORE
 
 #include <atomic>
 #include <memory>
@@ -259,7 +259,7 @@ namespace terrier {
         void SetUp(const benchmark::State &state) final {
 
             // Switches
-            local_test_ = true;
+            local_test_ = false;
             scan_all_ = false;
             use_perf_ = false;
             pin_to_core_ = true;
