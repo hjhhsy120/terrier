@@ -52,6 +52,8 @@ namespace terrier::execution {
                      uint64_t *adaptive_exec_ms_cnt,
                      double *jit_exec_ms_sum,
                      uint64_t *jit_exec_ms_cnt,
+                     double *cpu_time_ms_sum,
+                     uint64_t *cpu_time_ms_cnt,
                      bool interp, bool adaptive, bool jit);
 
         /*

@@ -41,6 +41,7 @@
 #undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 #include "execution/tplclass.h"
+#include "common/thread_cpu_timer.h"
 
 // ---------------------------------------------------------
 // CLI options
@@ -69,6 +70,8 @@ namespace terrier::execution {
                            uint64_t *adaptive_exec_ms_cnt,
                            double *jit_exec_ms_sum,
                            uint64_t *jit_exec_ms_cnt,
+                           double *cpu_time_ms_sum,
+                           uint64_t *cpu_time_ms_cnt,
                            bool interp, bool adaptive, bool jit) {
         // Mostly copied from tpl.cpp
         auto *txn = txn_manager_pointer_->BeginTransaction();
@@ -79,7 +82,7 @@ namespace terrier::execution {
         exec::ExecutionContext exec_ctx{db_oid_, txn, printer, output_schema, std::move(accessor)};
 
         double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,
-                jit_exec_ms = 0.0;
+                jit_exec_ms = 0.0, cpu_time_ms = 0.0;
 
         //-----------------------------------------
         // Let's scan the source
@@ -166,7 +169,9 @@ namespace terrier::execution {
         //
 
         if (interp) {
+            common::ThreadCPUTimer cpu_timer;
             util::ScopedTimer<std::milli> timer(&interp_exec_ms);
+            cpu_timer.Start();
 
             if (is_sql) {
                 std::function<int64_t(exec::ExecutionContext *)> main;
@@ -185,6 +190,10 @@ namespace terrier::execution {
                 }
                 EXECUTION_LOG_INFO("VM main() returned: {}", main());
             }
+
+            cpu_timer.Stop();
+            cpu_time_ms = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
+
         }
 
         //
@@ -248,6 +257,8 @@ namespace terrier::execution {
         if (interp) {
             *interp_exec_ms_sum += interp_exec_ms;
             *interp_exec_ms_cnt += 1;
+            *cpu_time_ms_sum += cpu_time_ms;
+            *cpu_time_ms_cnt += 1;
         }
         if (adaptive) {
             *adaptive_exec_ms_sum += adaptive_exec_ms;

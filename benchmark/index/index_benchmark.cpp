@@ -40,6 +40,8 @@
 #include "execution/util/timer.h"
 #include "execution/vm/module.h"
 
+#include "common/thread_cpu_timer.h"
+
 namespace terrier {
 
     /*
@@ -191,8 +193,8 @@ namespace terrier {
                 max_num_inserts_ = 67108864;
                 if (single_test_) { // Small test for correctness of code
                     num_inserts_list_.push_back(50000000);
-                    for (int i = 17; i >= 4; i -= 3)
-                        num_threads_list_.push_back(i);
+                    //for (int i = 17; i >= 4; i -= 3)
+                    num_threads_list_.push_back(1);
                     num_columns_list_.push_back(3);
                 } else { // full experiment data collection
                     const uint32_t num_inserts_list[20] = {1, 16, 256, 1024, 2048, 4096, 8192, 16384,
@@ -269,7 +271,7 @@ namespace terrier {
             need_tpch_ = true;
 
             other_type_ = LOOP;
-            workload_type_ = UTPCH;
+            workload_type_ = UINDEX;
 
             // Initialization of upper bounds and lists
             max_times_ = 3;
@@ -536,17 +538,21 @@ namespace terrier {
             std::vector < std::vector<double> > interp_exec_ms_sum_single(tpch_filenum_);
             std::vector < std::vector<double> > adaptive_exec_ms_sum_single(tpch_filenum_);
             std::vector < std::vector<double> > jit_exec_ms_sum_single(tpch_filenum_);
+            std::vector < std::vector<double> > cpu_time_ms_sum_single(tpch_filenum_);
             std::vector < std::vector<uint64_t> > interp_exec_ms_cnt_single(tpch_filenum_);
             std::vector < std::vector<uint64_t> > adaptive_exec_ms_cnt_single(tpch_filenum_);
             std::vector < std::vector<uint64_t> > jit_exec_ms_cnt_single(tpch_filenum_);
+            std::vector < std::vector<uint64_t> > cpu_time_ms_cnt_single(tpch_filenum_);
 
             for (uint32_t j = 0; j < tpch_filenum_; j++) {
                 interp_exec_ms_sum_single[j].resize(max_num_threads_);
                 adaptive_exec_ms_sum_single[j].resize(max_num_threads_);
                 jit_exec_ms_sum_single[j].resize(max_num_threads_);
+                cpu_time_ms_sum_single[j].resize(max_num_threads_);
                 interp_exec_ms_cnt_single[j].resize(max_num_threads_);
                 adaptive_exec_ms_cnt_single[j].resize(max_num_threads_);
                 jit_exec_ms_cnt_single[j].resize(max_num_threads_);
+                cpu_time_ms_cnt_single[j].resize(max_num_threads_);
             }
 
             // Initialize the arrays of each thread for ARRAY workload
@@ -570,6 +576,7 @@ namespace terrier {
                         // Initialize the time
                         double sum_time = 0;
                         double sum_insert_time = 0;
+                        double sum_cpu_time = 0;
                         double insert_time_ms[max_num_threads_];
 
                         for (uint32_t i = 0; i < max_num_threads_; i++)
@@ -577,9 +584,11 @@ namespace terrier {
                                 interp_exec_ms_sum_single[j][i] = 0;
                                 adaptive_exec_ms_sum_single[j][i] = 0;
                                 jit_exec_ms_sum_single[j][i] = 0;
+                                cpu_time_ms_sum_single[j][i] = 0;
                                 interp_exec_ms_cnt_single[j][i] = 0;
                                 adaptive_exec_ms_cnt_single[j][i] = 0;
                                 jit_exec_ms_cnt_single[j][i] = 0;
+                                cpu_time_ms_cnt_single[j][i] = 0;
                             }
 
                         // Repeat the experiments for several times
@@ -625,19 +634,19 @@ namespace terrier {
                                         execution::TplClass my_tpch(&txn_manager_, &sample_output_, db_oid_,
                                                                     *catalog_pointer_, &unfinished);
                                         // useless variables
-                                        double x1 = 0, x2 = 0, x3 = 0;
-                                        uint64_t y1 = 0, y2 = 0, y3 = 0;
+                                        double x1 = 0, x2 = 0, x3 = 0, x4 = 0;
+                                        uint64_t y1 = 0, y2 = 0, y3 = 0, y4 = 0;
                                         if (other_type_ == TPCH) {
                                             for (int fn = worker_id % tpch_filenum_; unfinished; fn = (fn + 1) %
                                                                                                       tpch_filenum_) {
                                                 my_tpch.RunFile(tpch_filename_[fn],
-                                                                &x1, &y1, &x2, &y2, &x3, &y3,
+                                                                &x1, &y1, &x2, &y2, &x3, &y3, &x4, &y4,
                                                                 tpch_mode_[0], tpch_mode_[1], tpch_mode_[2]);
                                             }
                                         } else {
                                             while (unfinished)
                                                 my_tpch.RunFile(scan_filename_,
-                                                                &x1, &y1, &x2, &y2, &x3, &y3,
+                                                                &x1, &y1, &x2, &y2, &x3, &y3, &x4, &y4,
                                                                 tpch_mode_[0], tpch_mode_[1], tpch_mode_[2]);
                                         }
                                         break;
@@ -665,6 +674,8 @@ namespace terrier {
                                                             &adaptive_exec_ms_cnt_single[tpch_number_][worker_id],
                                                             &jit_exec_ms_sum_single[tpch_number_][worker_id],
                                                             &jit_exec_ms_cnt_single[tpch_number_][worker_id],
+                                                            &cpu_time_ms_sum_single[tpch_number_][worker_id],
+                                                            &cpu_time_ms_cnt_single[tpch_number_][worker_id],
                                                             tpch_mode_[0], tpch_mode_[1], tpch_mode_[2]);
                                         }
                                     }
@@ -682,6 +693,8 @@ namespace terrier {
                                                             &adaptive_exec_ms_cnt_single[0][worker_id],
                                                             &jit_exec_ms_sum_single[0][worker_id],
                                                             &jit_exec_ms_cnt_single[0][worker_id],
+                                                            &cpu_time_ms_sum_single[0][worker_id],
+                                                            &cpu_time_ms_cnt_single[0][worker_id],
                                                             tpch_mode_[0], tpch_mode_[1], tpch_mode_[2]);
                                         }
                                     }
@@ -710,16 +723,20 @@ namespace terrier {
                                 }
                             }
 
-                            double elapsed_ms;
+                            double elapsed_ms, cpu_time_ms;
                             {
                                 // Index creation workloads
+                                common::ThreadCPUTimer cpu_timer;
                                 execution::util::ScopedTimer<std::milli> timer(&elapsed_ms);
+                                cpu_timer.Start();
                                 // run the workload
                                 for (uint32_t i = 0; i < num_threads; i++) {
                                     uint32_t core_id = core_ids_[i];
                                     workload_thread_pool.SubmitTask([i, core_id, &workload] { workload(i, core_id); });
                                 }
                                 workload_thread_pool.WaitUntilAllFinished();
+                                cpu_timer.Stop();
+                                cpu_time_ms = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
                             }
                             unfinished = false;
                             other_thread_pool.WaitUntilAllFinished();
@@ -736,18 +753,20 @@ namespace terrier {
                                 if (insert_time_ms[i] > max_insert_time)
                                     max_insert_time = insert_time_ms[i];
                             sum_insert_time += max_insert_time;
+                            sum_cpu_time += cpu_time_ms;
                         }
 
                         // output format: keysize, threadnum, inertnum, time including scan, time without scan (split by \t)
                         if (workload_type_ == UINDEX || workload_type_ == ULOOP || workload_type_ == UTABLE) {
                             std::cout << "bwtree_time" << "\t" << num_columns << "\t" << num_threads << "\t"
                                       << num_inserts << "\t" << sum_time / max_times_ / 1000.0
-                                      << "\t" << sum_insert_time / max_times_ / 1000.0 << std::endl;
+                                      << "\t" << sum_insert_time / max_times_ / 1000.0
+                                      << "\t" << sum_cpu_time / max_times_ / 1000.0 << std::endl;
                         }
 
                         // Compute the time of TPCH workloads
-                        double interp_exec_ms_sum[tpch_filenum_], adaptive_exec_ms_sum[tpch_filenum_], jit_exec_ms_sum[tpch_filenum_];
-                        uint64_t interp_exec_ms_cnt[tpch_filenum_], adaptive_exec_ms_cnt[tpch_filenum_], jit_exec_ms_cnt[tpch_filenum_];
+                        double interp_exec_ms_sum[tpch_filenum_], adaptive_exec_ms_sum[tpch_filenum_], jit_exec_ms_sum[tpch_filenum_], cpu_time_ms_sum[tpch_filenum_];
+                        uint64_t interp_exec_ms_cnt[tpch_filenum_], adaptive_exec_ms_cnt[tpch_filenum_], jit_exec_ms_cnt[tpch_filenum_], cpu_time_ms_cnt[tpch_filenum_];
                         for (uint32_t j = 0; j < tpch_filenum_; j++) {
                             interp_exec_ms_sum[j] = 0;
                             interp_exec_ms_cnt[j] = 0;
@@ -755,6 +774,8 @@ namespace terrier {
                             adaptive_exec_ms_cnt[j] = 0;
                             jit_exec_ms_sum[j] = 0;
                             jit_exec_ms_cnt[j] = 0;
+                            cpu_time_ms_sum[j] = 0;
+                            cpu_time_ms_cnt[j] = 0;
                         }
                         for (uint32_t i = 0; i < max_num_threads_; i++)
                             for (uint32_t j = 0; j < tpch_filenum_; j++) {
@@ -764,6 +785,8 @@ namespace terrier {
                                 adaptive_exec_ms_cnt[j] += adaptive_exec_ms_cnt_single[j][i];
                                 jit_exec_ms_sum[j] += jit_exec_ms_sum_single[j][i];
                                 jit_exec_ms_cnt[j] += jit_exec_ms_cnt_single[j][i];
+                                cpu_time_ms_sum[j] += cpu_time_ms_sum_single[j][i];
+                                cpu_time_ms_cnt[j] += cpu_time_ms_cnt_single[j][i];
                             }
 
                         // output format: filename, keysize, threadnum, insertnum, interp_time, adaptive_time, jit_time(ms) (split by \t)
@@ -775,6 +798,7 @@ namespace terrier {
                                           << "\t" << interp_exec_ms_sum[j] / (double)interp_exec_ms_cnt[j]
                                           << "\t" << adaptive_exec_ms_sum[j] / (double)adaptive_exec_ms_cnt[j]
                                           << "\t" << jit_exec_ms_sum[j] / (double)jit_exec_ms_cnt[j]
+                                          << "\t" << cpu_time_ms_sum[j] / (double)cpu_time_ms_cnt[j]
                                           << std::endl;
                             }
                     }
