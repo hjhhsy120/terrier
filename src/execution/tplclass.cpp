@@ -157,7 +157,6 @@ namespace terrier::execution {
                 bytecode_module->PrettyPrint(&ss);
                 EXECUTION_LOG_INFO("\n{}", ss.str());
             }
-
             modules_[filename] = std::make_unique<vm::Module>(std::move(bytecode_module));
             itr = modules_.find(filename);
         }
@@ -166,7 +165,7 @@ namespace terrier::execution {
         // Interpret
         //
 
-        {
+        if (interp) {
             util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
             if (is_sql) {
@@ -192,7 +191,7 @@ namespace terrier::execution {
         // Adaptive
         //
 
-        {
+        if (adaptive) {
             util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
             if (is_sql) {
@@ -217,9 +216,7 @@ namespace terrier::execution {
         //
         // JIT
         //
-        {
-            util::ScopedTimer<std::milli> timer(&jit_exec_ms);
-
+        if (jit) {
             if (is_sql) {
                 std::function<int64_t(exec::ExecutionContext *)> main;
                 if (!itr->second->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
@@ -228,6 +225,7 @@ namespace terrier::execution {
                             "(*ExecutionContext)->int64");
                     return;
                 }
+                util::ScopedTimer<std::milli> timer(&jit_exec_ms);
                 EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
             } else {
                 std::function<int64_t()> main;
@@ -235,6 +233,7 @@ namespace terrier::execution {
                     EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
                     return;
                 }
+                util::ScopedTimer<std::milli> timer(&jit_exec_ms);
                 EXECUTION_LOG_INFO("JIT main() returned: {}", main());
             }
         }

@@ -306,9 +306,9 @@ namespace terrier {
             for (int i = 0; i < 4; i++)
                 tpch_list_.push_back(i);
             tpch_mode_.resize(3);
-            tpch_mode_[0] = false; // interpret
+            tpch_mode_[0] = true; // interpret
             tpch_mode_[1] = false; // adaptive
-            tpch_mode_[2] = true; // jit
+            tpch_mode_[2] = false; // jit
             tpch_repeated_times_ = 1;
 
             // set up sequence of cores and GC
