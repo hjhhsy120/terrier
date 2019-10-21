@@ -823,31 +823,31 @@ namespace terrier {
         case ULOOP:
         case USCAN:
         case UTABLE:
-//            if (local_test_) {
+            if (local_test_) {
                 RunBenchmark();
                 break;
-//            }
-//            other_type_ = EMPTY;
-//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-//                std::cout << max_num_threads_ << '\t';
-//                RunBenchmark();
-//            }
-//            other_type_ = LOOP;
-//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-//                std::cout << max_num_threads_ << '\t';
-//                RunBenchmark();
-//            }
-//            other_type_ = TPCH;
-//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-//                std::cout << max_num_threads_ << '\t';
-//                RunBenchmark();
-//            }
-//            other_type_ = INDEX;
-//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-//                std::cout << max_num_threads_ << '\t';
-//                RunBenchmark();
-//            }
-//            break;
+            }
+            other_type_ = EMPTY;
+            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                std::cout << max_num_threads_ << '\t';
+                RunBenchmark();
+            }
+            other_type_ = LOOP;
+            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                std::cout << max_num_threads_ << '\t';
+                RunBenchmark();
+            }
+            other_type_ = TPCH;
+            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                std::cout << max_num_threads_ << '\t';
+                RunBenchmark();
+            }
+            other_type_ = INDEX;
+            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                std::cout << max_num_threads_ << '\t';
+                RunBenchmark();
+            }
+            break;
         case UTPCH:
             if (local_test_) {
                 RunBenchmark();
