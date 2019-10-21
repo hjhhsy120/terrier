@@ -219,10 +219,10 @@ namespace terrier {
             core_ids_.clear();
             for (int i = 0; i <= 8; i++)
                 core_ids_.push_back(i);
-            if (!one_always_)
-                core_ids_.push_back(20);
             for (int i = 21; i <= 28; i++)
                 core_ids_.push_back(i);
+            if (!one_always_)
+                core_ids_.push_back(20);
         }
 
         /*
@@ -251,7 +251,8 @@ namespace terrier {
                     core_ids_.push_back(i);
                 for (int i = 21; i <= 28; i++)
                     core_ids_.push_back(i);
-                core_ids_.push_back(20);
+                if (!one_always_)
+                    core_ids_.push_back(20);
             }
         }
 
@@ -270,7 +271,7 @@ namespace terrier {
             need_index_ = true;
             need_tpch_ = true;
 
-            other_type_ = LOOP;
+            other_type_ = EMPTY;
             workload_type_ = UTPCH;
 
             // Initialization of upper bounds and lists
@@ -341,7 +342,7 @@ namespace terrier {
             }
             if (need_tpch_) {
                 execution::TplClass::BuildDb(txn_manager_, block_store_, sample_output_, db_oid_,
-                                             *catalog_pointer_, "other_db", "../../tpl_tables/tables/");
+                                             *catalog_pointer_, "other_db", "../../tpl_tables/tables2/");
             }
             tpch_number_ = 0;
 
@@ -578,6 +579,7 @@ namespace terrier {
                         double sum_insert_time = 0;
                         double sum_cpu_time = 0;
                         double insert_time_ms[max_num_threads_];
+                        double cpu_time_ms[max_num_threads_];
 
                         for (uint32_t i = 0; i < max_num_threads_; i++)
                             for (uint32_t j = 0; j < tpch_filenum_; j++) {
@@ -657,6 +659,8 @@ namespace terrier {
                             auto workload = [&](uint32_t worker_id, uint32_t core_id) {
                                 if (pin_to_core_)
                                     MyPinToCore(core_id);
+                                common::ThreadCPUTimer cpu_timer;
+                                cpu_timer.Start();
                                 switch (workload_type_) {
                                     case UINDEX:
                                         IndexInsertion(worker_id, default_index, num_inserts, num_columns, num_threads,
@@ -708,6 +712,8 @@ namespace terrier {
                                         TableScan(worker_id, num_inserts_per_table_, max_num_columns_);
                                         break;
                                 }
+                                cpu_timer.Stop();
+                                cpu_time_ms[worker_id] = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
                             };
 
                             // Workloads except index creation
@@ -723,20 +729,16 @@ namespace terrier {
                                 }
                             }
 
-                            double elapsed_ms, cpu_time_ms;
+                            double elapsed_ms;
                             {
                                 // Index creation workloads
-                                common::ThreadCPUTimer cpu_timer;
                                 execution::util::ScopedTimer<std::milli> timer(&elapsed_ms);
-                                cpu_timer.Start();
                                 // run the workload
                                 for (uint32_t i = 0; i < num_threads; i++) {
                                     uint32_t core_id = core_ids_[i];
                                     workload_thread_pool.SubmitTask([i, core_id, &workload] { workload(i, core_id); });
                                 }
                                 workload_thread_pool.WaitUntilAllFinished();
-                                cpu_timer.Stop();
-                                cpu_time_ms = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
                             }
                             unfinished = false;
                             other_thread_pool.WaitUntilAllFinished();
@@ -753,7 +755,8 @@ namespace terrier {
                                 if (insert_time_ms[i] > max_insert_time)
                                     max_insert_time = insert_time_ms[i];
                             sum_insert_time += max_insert_time;
-                            sum_cpu_time += cpu_time_ms;
+                            for (uint32_t i = 0; i < num_threads; i++)
+                                sum_cpu_time += cpu_time_ms[i];
                         }
 
                         // output format: keysize, threadnum, inertnum, time including scan, time without scan (split by \t)
@@ -761,7 +764,7 @@ namespace terrier {
                             std::cout << "bwtree_time" << "\t" << num_columns << "\t" << num_threads << "\t"
                                       << num_inserts << "\t" << sum_time / max_times_ / 1000.0
                                       << "\t" << sum_insert_time / max_times_ / 1000.0
-                                      << "\t" << sum_cpu_time / max_times_ / 1000.0 << std::endl;
+                                      << "\t" << sum_cpu_time / max_times_ / num_threads / 1000.0 << std::endl;
                         }
 
                         // Compute the time of TPCH workloads
@@ -820,12 +823,67 @@ namespace terrier {
         case ULOOP:
         case USCAN:
         case UTABLE:
-            RunBenchmark();
-            break;
+//            if (local_test_) {
+                RunBenchmark();
+                break;
+//            }
+//            other_type_ = EMPTY;
+//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+//                std::cout << max_num_threads_ << '\t';
+//                RunBenchmark();
+//            }
+//            other_type_ = LOOP;
+//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+//                std::cout << max_num_threads_ << '\t';
+//                RunBenchmark();
+//            }
+//            other_type_ = TPCH;
+//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+//                std::cout << max_num_threads_ << '\t';
+//                RunBenchmark();
+//            }
+//            other_type_ = INDEX;
+//            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+//                std::cout << max_num_threads_ << '\t';
+//                RunBenchmark();
+//            }
+//            break;
         case UTPCH:
+            if (local_test_) {
+                RunBenchmark();
+                break;
+            }
+            other_type_ = EMPTY;
             for (int tpch_number : tpch_list_) {
                 tpch_number_ = tpch_number;
-                RunBenchmark();
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
+            }
+            other_type_ = LOOP;
+            for (int tpch_number : tpch_list_) {
+                tpch_number_ = tpch_number;
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
+            }
+            other_type_ = TPCH;
+            for (int tpch_number : tpch_list_) {
+                tpch_number_ = tpch_number;
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
+            }
+            other_type_ = INDEX;
+            for (int tpch_number : tpch_list_) {
+                tpch_number_ = tpch_number;
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
             }
             break;
 //            if (single_test_) {
