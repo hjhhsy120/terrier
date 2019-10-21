@@ -271,7 +271,7 @@ namespace terrier {
             need_tpch_ = true;
 
             other_type_ = LOOP;
-            workload_type_ = UINDEX;
+            workload_type_ = UTPCH;
 
             // Initialization of upper bounds and lists
             max_times_ = 3;
@@ -821,51 +821,56 @@ namespace terrier {
         case USCAN:
         case UTABLE:
             RunBenchmark();
-        break;
+            break;
         case UTPCH:
-            if (single_test_) {
-                for (; max_num_threads_ >= 1; max_num_threads_--) {
-                    std::cout << max_num_threads_ << '\t';
-                    RunBenchmark();
-                }
-                break;
-            }
-            std::cout << "Empty" << std::endl;
-            other_type_ = EMPTY;
-            one_always_ = false;
             for (int tpch_number : tpch_list_) {
                 tpch_number_ = tpch_number;
                 RunBenchmark();
             }
-
-            for (other_types other_type : {LOOP, TPCH, SCAN, INDEX}) {
-                other_type_ = other_type;
-                std::cout << "Hyper-threading " << type_names_[int(other_type)] << std::endl;
-                one_always_ = true;
-                for (int tpch_number : tpch_list_) {
-                    tpch_number_ = tpch_number;
-                    RunBenchmark();
-                }
-
-                std::cout << "Other physical cores " << type_names_[int(other_type)] << std::endl;
-                one_always_ = false;
-                if (local_test_)
-                    max_num_threads_ = 3;
-                else
-                    max_num_threads_ = 17;
-                for (int tpch_number : tpch_list_) {
-                    tpch_number_ = tpch_number;
-                    RunBenchmark();
-                }
-
-                std::cout << "All other cores " << type_names_[int(other_type)] << std::endl;
-                max_num_threads_++;
-                for (int tpch_number : tpch_list_) {
-                    tpch_number_ = tpch_number;
-                    RunBenchmark();
-                }
-            }
             break;
+//            if (single_test_) {
+//                for (; max_num_threads_ >= 1; max_num_threads_--) {
+//                    std::cout << max_num_threads_ << '\t';
+//                    RunBenchmark();
+//                }
+//                break;
+//            }
+//            std::cout << "Empty" << std::endl;
+//            other_type_ = EMPTY;
+//            one_always_ = false;
+//            for (int tpch_number : tpch_list_) {
+//                tpch_number_ = tpch_number;
+//                RunBenchmark();
+//            }
+//
+//            for (other_types other_type : {LOOP, TPCH, SCAN, INDEX}) {
+//                other_type_ = other_type;
+//                std::cout << "Hyper-threading " << type_names_[int(other_type)] << std::endl;
+//                one_always_ = true;
+//                for (int tpch_number : tpch_list_) {
+//                    tpch_number_ = tpch_number;
+//                    RunBenchmark();
+//                }
+//
+//                std::cout << "Other physical cores " << type_names_[int(other_type)] << std::endl;
+//                one_always_ = false;
+//                if (local_test_)
+//                    max_num_threads_ = 3;
+//                else
+//                    max_num_threads_ = 17;
+//                for (int tpch_number : tpch_list_) {
+//                    tpch_number_ = tpch_number;
+//                    RunBenchmark();
+//                }
+//
+//                std::cout << "All other cores " << type_names_[int(other_type)] << std::endl;
+//                max_num_threads_++;
+//                for (int tpch_number : tpch_list_) {
+//                    tpch_number_ = tpch_number;
+//                    RunBenchmark();
+//                }
+//            }
+//            break;
         }
     }
     if (local_test_)
