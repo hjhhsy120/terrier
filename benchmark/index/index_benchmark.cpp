@@ -342,7 +342,7 @@ namespace terrier {
             }
             if (need_tpch_) {
                 execution::TplClass::BuildDb(txn_manager_, block_store_, sample_output_, db_oid_,
-                                             *catalog_pointer_, "other_db", "../../tpl_tables/tables2/");
+                                             *catalog_pointer_, "other_db", "../../tpl_tables/tables/");
             }
             tpch_number_ = 0;
 
@@ -827,17 +827,17 @@ namespace terrier {
                 RunBenchmark();
                 break;
             }
-            other_type_ = EMPTY;
-            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-                std::cout << max_num_threads_ << '\t';
-                RunBenchmark();
-            }
             other_type_ = LOOP;
             for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
             }
             other_type_ = TPCH;
+            for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                std::cout << max_num_threads_ << '\t';
+                RunBenchmark();
+            }
+            other_type_ = SCAN;
             for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
@@ -870,6 +870,14 @@ namespace terrier {
                 }
             }
             other_type_ = TPCH;
+            for (int tpch_number : tpch_list_) {
+                tpch_number_ = tpch_number;
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
+            }
+            other_type_ = SCAN;
             for (int tpch_number : tpch_list_) {
                 tpch_number_ = tpch_number;
                 for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
