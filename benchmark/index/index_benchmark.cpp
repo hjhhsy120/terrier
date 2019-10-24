@@ -179,7 +179,7 @@ namespace terrier {
          * Set upper bounds and lists for index benchmark
          */
         void SetIndex() {
-            max_num_columns_ = 6;
+            max_num_columns_ = 3;
             num_inserts_list_.clear();
             num_threads_list_.clear();
             num_columns_list_.clear();
@@ -211,7 +211,7 @@ namespace terrier {
                         for (int i = 0; i < 8; i++)
                             num_threads_list_.push_back(num_threads_list[i]);
                     }
-                    const int num_columns_list[4] = {1, 2, 4, 6};
+                    const int num_columns_list[4] = {1, 2, 3, 3};
                     for (int i = 0; i < 4; i++)
                         num_columns_list_.push_back(num_columns_list[i]);
                 }
@@ -627,7 +627,7 @@ namespace terrier {
                                         while(unfinished) {
                                             storage::index::Index * my_index = IndexInit(num_columns);
                                             gc_thread_->GetGarbageCollector().RegisterIndexForGC(my_index);
-                                            IndexInsertion(worker_id, my_index, num_inserts, num_columns, 1, &insert_time_ms[worker_id]);
+                                            IndexInsertion(worker_id, my_index, num_inserts, num_columns, max_num_threads_ - 1, &insert_time_ms[worker_id]);
                                             gc_thread_->GetGarbageCollector().UnregisterIndexForGC(my_index);
                                             delete my_index;
                                         }
@@ -713,7 +713,7 @@ namespace terrier {
                                         break;
                                 }
                                 cpu_timer.Stop();
-                                cpu_time_ms[worker_id] = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
+                                cpu_time_ms[worker_id] = ((double)cpu_timer.ElapsedTime().user_time_us_ + (double)cpu_timer.ElapsedTime().system_time_us_) / 1000.0;
                             };
 
                             // Workloads except index creation
@@ -827,12 +827,12 @@ namespace terrier {
                 RunBenchmark();
                 break;
             }
-            other_type_ = LOOP;
+            other_type_ = TPCH;
             for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
             }
-            other_type_ = TPCH;
+            other_type_ = INDEX;
             for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
@@ -842,7 +842,7 @@ namespace terrier {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
             }
-            other_type_ = INDEX;
+            other_type_ = LOOP;
             for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
                 std::cout << max_num_threads_ << '\t';
                 RunBenchmark();
@@ -853,23 +853,15 @@ namespace terrier {
                 RunBenchmark();
                 break;
             }
-            other_type_ = EMPTY;
-            for (int tpch_number : tpch_list_) {
-                tpch_number_ = tpch_number;
-                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-                    std::cout << max_num_threads_ << '\t';
-                    RunBenchmark();
-                }
-            }
-            other_type_ = LOOP;
-            for (int tpch_number : tpch_list_) {
-                tpch_number_ = tpch_number;
-                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
-                    std::cout << max_num_threads_ << '\t';
-                    RunBenchmark();
-                }
-            }
             other_type_ = TPCH;
+            for (int tpch_number : tpch_list_) {
+                tpch_number_ = tpch_number;
+                for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << '\t';
+                    RunBenchmark();
+                }
+            }
+            other_type_ = INDEX;
             for (int tpch_number : tpch_list_) {
                 tpch_number_ = tpch_number;
                 for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {
@@ -885,7 +877,7 @@ namespace terrier {
                     RunBenchmark();
                 }
             }
-            other_type_ = INDEX;
+            other_type_ = LOOP;
             for (int tpch_number : tpch_list_) {
                 tpch_number_ = tpch_number;
                 for (max_num_threads_ = 18; max_num_threads_ >= 1; max_num_threads_--) {

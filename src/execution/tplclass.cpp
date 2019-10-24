@@ -192,7 +192,7 @@ namespace terrier::execution {
             }
 
             cpu_timer.Stop();
-            cpu_time_ms = (double)cpu_timer.ElapsedTime().user_time_us_ / 1000.0;
+            cpu_time_ms = ((double)cpu_timer.ElapsedTime().user_time_us_ + (double)cpu_timer.ElapsedTime().system_time_us_) / 1000.0;
 
         }
 
