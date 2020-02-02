@@ -1,5 +1,5 @@
 // Whether pin to core, only for GC now. TODO : discuss it later
-#define MY_PIN_TO_CORE
+//#define MY_PIN_TO_CORE
 
 #include <atomic>
 #include <memory>
@@ -179,15 +179,15 @@ namespace terrier {
          * Set upper bounds and lists for index benchmark
          */
         void SetIndex() {
-            max_num_columns_ = 3;
+            max_num_columns_ = 6;
             num_inserts_list_.clear();
             num_threads_list_.clear();
             num_columns_list_.clear();
 
             if (local_test_) { // local test for PC: use very small #threads, #insertions...
-                max_num_inserts_ = 10000;
+                max_num_inserts_ = 100000;
                 num_inserts_list_.push_back(max_num_inserts_);
-                num_threads_list_.push_back(2);
+                num_threads_list_.push_back(1);
                 num_columns_list_.push_back(max_num_columns_);
             } else { // for the server
                 max_num_inserts_ = 67108864;
@@ -211,7 +211,7 @@ namespace terrier {
                         for (int i = 0; i < 8; i++)
                             num_threads_list_.push_back(num_threads_list[i]);
                     }
-                    const int num_columns_list[4] = {1, 2, 3, 3};
+                    const int num_columns_list[4] = {1, 2, 4, 6};
                     for (int i = 0; i < 4; i++)
                         num_columns_list_.push_back(num_columns_list[i]);
                 }
@@ -262,17 +262,17 @@ namespace terrier {
         void SetUp(const benchmark::State &state) final {
 
             // Switches
-            local_test_ = false;
+            local_test_ = true;
             scan_all_ = false;
             use_perf_ = false;
-            pin_to_core_ = true;
+            pin_to_core_ = false;
             one_always_ = false;
             single_test_ = true;
             need_index_ = true;
             need_tpch_ = true;
 
-            other_type_ = EMPTY;
-            workload_type_ = UTPCH;
+            other_type_ = TPCH;
+            workload_type_ = UINDEX;
 
             // Initialization of upper bounds and lists
             max_times_ = 3;
@@ -824,7 +824,11 @@ namespace terrier {
         case USCAN:
         case UTABLE:
             if (local_test_) {
-                RunBenchmark();
+                other_type_ = TPCH;
+                for (max_num_threads_ = 4; max_num_threads_ >= 1; max_num_threads_--) {
+                    std::cout << max_num_threads_ << std::endl;
+                    RunBenchmark();
+                }
                 break;
             }
             other_type_ = TPCH;
